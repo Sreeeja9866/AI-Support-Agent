@@ -1,6 +1,4 @@
-# Next.js Template
-
-This is a template repository showcasing Next.js Server Actions, React Server Components, and modern data fetching patterns. The project includes a Todo list implementation and examples of API integration with proper loading states and error handling.
+Ava- Aven's AI Assistant
 
 ## Features
 
@@ -9,6 +7,42 @@ This is a template repository showcasing Next.js Server Actions, React Server Co
 - **Modern UI**: Built with Shadcn UI components and Tailwind CSS
 - **Error Handling**: Proper error boundaries and user feedback
 - **Type Safety**: Full TypeScript support
+
+## How It Works: End-to-End Logic
+
+1. **Data Collection & Chunking**
+   - Relevant data (docs, FAQs, website content) is collected and split into small chunks.
+   - _See:_ [`src/scripts/embed-multiple-pages.ts`](src/scripts/embed-multiple-pages.ts)
+
+2. **Embedding & Pinecone Storage**
+   - Each chunk is converted into a vector embedding and stored in Pinecone for semantic search.
+   - _See:_ [`src/scripts/insert-data-to-pinecone.ts`](src/scripts/insert-data-to-pinecone.ts)
+
+3. **User Query (Voice or Text)**
+   - The user asks a question via text or voice (using Vapi and browser speech recognition).
+   - _See:_ [`src/app/components/ChatWidget.tsx`](src/app/components/ChatWidget.tsx), [`src/app/components/VapiWidget.tsx`](src/app/components/VapiWidget.tsx)
+
+4. **Query Embedding & Pinecone Search**
+   - The user’s question is embedded and Pinecone is queried for relevant chunks.
+   - _See:_ [`src/scripts/query-pinecone.ts`](src/scripts/query-pinecone.ts)
+
+5. **Contextual Answer Generation (Gemini)**
+   - The top Pinecone results and the user’s question are sent to Gemini (Google LLM) to generate an answer.
+   - _See:_ [`src/app/api/ask/route.ts`](src/app/api/ask/route.ts)
+
+6. **Response Delivery (Text & Voice)**
+   - The answer is displayed in the chat and spoken aloud using Vapi.
+   - _See:_ [`src/app/components/ChatWidget.tsx`](src/app/components/ChatWidget.tsx), [`src/app/components/VapiWidget.tsx`](src/app/components/VapiWidget.tsx)
+
+---
+
+### Quick Links to Key Code Files
+
+- [Chat Widget (UI & Logic)](src/app/components/ChatWidget.tsx)
+- [Voice Widget (Vapi Integration)](src/app/components/VapiWidget.tsx)
+- [Pinecone Query Logic](src/scripts/query-pinecone.ts)
+- [Gemini API Integration](src/app/api/ask/route.ts)
+- [Data Embedding & Storage](src/scripts/embed-multiple-pages.ts), [Insert to Pinecone](src/scripts/insert-data-to-pinecone.ts)
 
 ## Tech Stack
 

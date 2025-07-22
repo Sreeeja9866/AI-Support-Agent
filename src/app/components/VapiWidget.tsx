@@ -1,6 +1,5 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-
 import Vapi from '@vapi-ai/web';
 
 interface VapiWidgetProps {
@@ -9,49 +8,45 @@ interface VapiWidgetProps {
   config?: Record<string, unknown>;
 }
 
-const VapiWidget: React.FC<VapiWidgetProps> = ({ 
-  apiKey, 
-  assistantId, 
-  config = {} 
+const VapiWidget: React.FC<VapiWidgetProps> = ({
+  apiKey,
+  assistantId,
+  config = {}
 }) => {
   const [vapi, setVapi] = useState<Vapi | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [transcript, setTranscript] = useState<Array<{role: string, text: string}>>([]);
+  const [bottomOffset, setBottomOffset] = useState(24);
+
+  useEffect(() => {
+    const updateOffset = () => {
+      const isMobile = window.innerWidth < 768;
+      setBottomOffset(isMobile ? 200 : 120);
+    };
+    updateOffset();
+    window.addEventListener('resize', updateOffset);
+    return () => window.removeEventListener('resize', updateOffset);
+  }, []);
 
   useEffect(() => {
     const vapiInstance = new Vapi(apiKey);
     setVapi(vapiInstance);
 
-    // Event listeners
     vapiInstance.on('call-start', () => {
-      console.log('Call started');
       setIsConnected(true);
     });
 
     vapiInstance.on('call-end', () => {
-      console.log('Call ended');
       setIsConnected(false);
       setIsSpeaking(false);
     });
 
     vapiInstance.on('speech-start', () => {
-      console.log('Assistant started speaking');
       setIsSpeaking(true);
     });
 
     vapiInstance.on('speech-end', () => {
-      console.log('Assistant stopped speaking');
       setIsSpeaking(false);
-    });
-
-    vapiInstance.on('message', (message) => {
-      if (message.type === 'transcript') {
-        setTranscript(prev => [...prev, {
-          role: message.role,
-          text: message.transcript
-        }]);
-      }
     });
 
     vapiInstance.on('error', (error) => {
@@ -64,80 +59,88 @@ const VapiWidget: React.FC<VapiWidgetProps> = ({
   }, [apiKey]);
 
   const startCall = () => {
-    if (vapi) {
-      vapi.start(assistantId);
+    if (!assistantId) {
+      console.error("No assistantId provided to VapiWidget! Cannot start call.");
+      return;
     }
+    if (vapi) vapi.start(assistantId);
   };
 
   const endCall = () => {
-    if (vapi) {
-      vapi.stop();
-    }
+    if (vapi) vapi.stop();
   };
 
   return (
     <div style={{
       position: 'fixed',
-      bottom: '24px',
-      right: '24px',
+      right: '32px',
+      bottom: '120px',
       zIndex: 1000,
-      fontFamily: 'Arial, sans-serif'
+      fontFamily: 'Arial, sans-serif',
     }}>
       {!isConnected ? (
         <button
           onClick={startCall}
           style={{
-            background: '#12A594',
+            background: isSpeaking
+              ? 'linear-gradient(135deg, #12A594 0%, #8e44ad 100%)'
+              : 'linear-gradient(135deg, #12A594 0%, #00c3ff 100%)',
             color: '#fff',
             border: 'none',
-            borderRadius: '50px',
-            padding: '16px 24px',
-            fontSize: '16px',
-            fontWeight: 'bold',
+            borderRadius: '50%',
+            width: '64px',
+            height: '64px',
+            fontSize: '32px',
+            boxShadow: '0 4px 16px rgba(18, 165, 148, 0.3)',
             cursor: 'pointer',
-            boxShadow: '0 4px 12px rgba(18, 165, 148, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
             transition: 'all 0.3s ease',
+            animation: isSpeaking ? 'micPulse 1s infinite alternate' : 'none',
           }}
-          onMouseOver={(e) => {
-            e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 6px 16px rgba(18, 165, 148, 0.4)';
-          }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = '0 4px 12px rgba(18, 165, 148, 0.3)';
-          }}
+          title="Talk to Assistant"
         >
-          🎤 Talk to Assistant
+          🎙️
         </button>
       ) : (
         <div style={{
           background: '#fff',
           borderRadius: '12px',
           padding: '20px',
-          width: '320px',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
-          border: '1px solid #e1e5e9'
+          border: '1px solid #e1e5e9',
         }}>
           <div style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            marginBottom: '16px'
+            marginBottom: '16px',
           }}>
             <div style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px'
+              gap: '8px',
             }}>
               <div style={{
                 width: '12px',
                 height: '12px',
                 borderRadius: '50%',
                 background: isSpeaking ? '#ff4444' : '#12A594',
-                animation: isSpeaking ? 'pulse 1s infinite' : 'none'
+                animation: isSpeaking ? 'pulse 1s infinite' : 'none',
               }}></div>
-              <span style={{ fontWeight: 'bold', color: '#333' }}>
-                {isSpeaking ? 'Assistant Speaking...' : 'Listening...'}
+              <span style={{ fontWeight: 'bold', color: '#333', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {isSpeaking ? (
+                  <>
+                    <span role="img" aria-label="Speaking">🔊</span>
+                    Assistant Speaking...
+                  </>
+                ) : (
+                  <>
+                    <span role="img" aria-label="Listening">🦻</span>
+                    Listening...
+                  </>
+                )}
               </span>
             </div>
             <button
@@ -149,57 +152,27 @@ const VapiWidget: React.FC<VapiWidgetProps> = ({
                 borderRadius: '6px',
                 padding: '6px 12px',
                 fontSize: '12px',
-                cursor: 'pointer'
+                cursor: 'pointer',
               }}
             >
               End Call
             </button>
           </div>
-          
-          <div style={{
-            maxHeight: '200px',
-            overflowY: 'auto',
-            marginBottom: '12px',
-            padding: '8px',
-            background: '#f8f9fa',
-            borderRadius: '8px'
-          }}>
-            {transcript.length === 0 ? (
-              <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
-                Conversation will appear here...
-              </p>
-            ) : (
-              transcript.map((msg, i) => (
-                <div
-                  key={i}
-                  style={{
-                    marginBottom: '8px',
-                    textAlign: msg.role === 'user' ? 'right' : 'left'
-                  }}
-                >
-                  <span style={{
-                    background: msg.role === 'user' ? '#12A594' : '#333',
-                    color: '#fff',
-                    padding: '8px 12px',
-                    borderRadius: '12px',
-                    display: 'inline-block',
-                    fontSize: '14px',
-                    maxWidth: '80%'
-                  }}>
-                    {msg.text}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
         </div>
       )}
-      
       <style>{`
         @keyframes pulse {
           0% { opacity: 1; }
           50% { opacity: 0.5; }
           100% { opacity: 1; }
+        }
+        @keyframes micPulse {
+          0% {
+            filter: brightness(1) drop-shadow(0 0 0 #12A594);
+          }
+          100% {
+            filter: brightness(1.2) drop-shadow(0 0 16px #8e44ad);
+          }
         }
       `}</style>
     </div>
@@ -207,9 +180,3 @@ const VapiWidget: React.FC<VapiWidgetProps> = ({
 };
 
 export default VapiWidget;
-
-// Usage in your app:
-// <VapiWidget 
-//   apiKey="your_public_api_key" 
-//   assistantId="your_assistant_id" 
-// />
